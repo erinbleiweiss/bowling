@@ -16,7 +16,10 @@ def test():
 
 @app.route("/calc_score", methods=["GET"])
 def calc_score():
-    return
+    roll1 = request.args.get('roll1')
+    roll2 = request.args.get('roll2')
+    current_total = request.args.get('current_total')
+    return str(int(current_total) + int(roll1) + int(roll2))
 
 
 @app.route("/calc_score_spare", methods=["GET"])
