@@ -7,3 +7,26 @@ body{
     padding: 20px;
     margin: 10px;
 }
+
+table {
+    margin: 5px;
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+td{
+    min-width: 25px;
+    height: 25px;
+    padding: 10px;
+    text-align: center;
+}
+
+th,
+.td_right {
+    border: 1px solid black;
+}
+
+.cumulative_score td{
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+}
