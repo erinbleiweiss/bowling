@@ -1,7 +1,7 @@
 var HOSTNAME = "http://127.0.0.1:5000";
 
 var current_frame = 1;
-var L_R = 1;
+var roll_num = 1;
 var pins_remaining = 10;
 var current_total = 0;
 
@@ -11,10 +11,12 @@ function test_api(){
     });
 }
 
-function knock_pins(num_pins){
-    pins_remaining -= num_pins;
-}
 
+/**
+ * Reduces possible number of pins to knock down by removing the
+ * corresponding buttons from the input display.
+ * Adds a "hidden" class to the appropriate buttons.
+ */
 function update_pins(){
     $.each($(".pin_button"), function(){
         var pin = ($(this).attr("data-num"));
@@ -24,6 +26,9 @@ function update_pins(){
     });
 }
 
+/**
+ * Returns all input buttons to view by removing "hidden" class.
+ */
 function reset_pins(){
     pins_remaining = 10;
     $.each($(".pin_button"), function(){
@@ -31,7 +36,33 @@ function reset_pins(){
     });
 }
 
+/**
+ * Updates the display to reflect the number of pins knocked down
+ * for each roll
+ * @param frame: Frame for current roll
+ * @param roll:  Current roll number
+ * @param val:   Number of pins knocked down
+ */
+function set_pins_for_roll(frame, roll, val){
+    $("#frame_" + frame + "_" + roll).text(val);
+    pins_remaining -= roll;
+}
 
+/**
+ * Updates the display to reflect the score for the current frame
+ * @param frame: Current frame number
+ * @param val:   Score for frame
+ */
+function set_frame_total(frame, val){
+    $("#frame_" + frame + "_total").text(val);
+}
+
+
+/**
+ * Retrieves score for an open frame from the bowling API.
+ * Upon completion, updates score display with response data,
+ * then reset pin input buttons.
+ */
 function compute_score(){
     var roll1 = $("#frame_" + current_frame + "_1").text();
     var roll2 = $("#frame_" + current_frame + "_2").text();
@@ -43,35 +74,42 @@ function compute_score(){
             current_total: current_total
         },
         function(data){
-            $("#frame_" + current_frame + "_total").text(data);
+            set_frame_total(current_frame, data);
             current_total = parseInt(data, 10);
             current_frame++;
-            L_R = 1;
+            roll_num = 1;
+            reset_pins();
         }
     );
 }
 
 $(document).ready(function(){
-    $("#pin_0").click(function(){
-        test_api();
-    });
-
-
+    /**
+     * When input buttons are clicked, determine appropriate scoring
+     * algorithm
+     */
     $(".pin_button").click(function(){
         var num_pins = ($(this).text());
-        $("#frame_" + current_frame + "_" + L_R).text(num_pins);
-        if (L_R == 1){
-            knock_pins(num_pins);
-            update_pins();
-            L_R++
-        } else if (current_frame == 10 && L_R == 2){
-            L_R++;
-        } else {
-            knock_pins(num_pins);
-            compute_score();
-            reset_pins();
-        }
 
+        // Roll is a strike
+        if (num_pins == 10 && roll_num == 1){
+            set_pins_for_roll(current_frame, 1, "");
+            set_pins_for_roll(current_frame, 2, "X");
+        }
+        // Roll is a spare
+        else if (num_pins == pins_remaining && roll_num == 2){
+
+        }
+        // Roll is an empty frame
+        else {
+            set_pins_for_roll(current_frame, roll_num, num_pins);
+            if (roll_num == 1){
+                update_pins();
+                roll_num++
+            } else {
+                compute_score();
+            }
+        }
     });
 
 });
