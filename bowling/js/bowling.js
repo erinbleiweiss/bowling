@@ -1,11 +1,12 @@
 var HOSTNAME = "http://127.0.0.1:5000";
 
-var frame = 1;
+var current_frame = 1;
 var roll = 1;
 var pins_remaining = 10;
 var current_total = 0;
 var frames = [];
-var current_frame;
+
+var last_scored = 0;
 
 var frame_type = {
     OPEN: "open",
@@ -27,6 +28,7 @@ var Frame = function(num){
     this.roll2= -1;
     this.frame_type= frame_type.UNPLAYED;
     this.RNS = RNS.UNPLAYED;
+    this.RNS_rolls = [];
 };
 
 Frame.prototype.set_roll1 = function(n){
@@ -42,7 +44,11 @@ Frame.prototype.set_type = function(type, rns){
 Frame.prototype.decrement_RNS = function(){
     if (this.RNS > 0){
         this.RNS--;
-    }
+        return true;
+    } return false;
+};
+Frame.prototype.add_roll = function(roll){
+    this.RNS_rolls.push(roll);
 };
 Frame.prototype.mark_as_scored = function(){
     this.RNS = -1;
@@ -70,7 +76,7 @@ function update_pins(){
 function reset_pins(){
     pins_remaining = 10;
     roll = 1;
-    frame++;
+    current_frame++;
     $.each($(".pin_button"), function(){
         $(this).removeClass("hidden");
     });
@@ -95,7 +101,9 @@ function set_pins_for_roll(frame, roll, val){
             fr.set_roll2(val);
         }
 
-        fr.decrement_RNS();
+        if (fr.decrement_RNS()){
+            fr.add_roll(val);
+        }
     }
 
 
@@ -119,6 +127,21 @@ function set_frame_total(frame, val){
 }
 
 
+function score_frames(){
+    for (var i=last_scored; i<current_frame; i++){
+        console.log("");
+        var fr = frames[i];
+        console.log("frame " + fr.num);
+        console.log("type " + fr.frame_type);
+        console.log("rns " + fr.RNS);
+        if (fr.RNS == 0){
+            compute_score(fr);
+            console.log("computing " + fr.frame_type);
+            break;
+        }
+    }
+}
+
 /**
  * Retrieves score for an open frame from the bowling API.
  * Upon completion, updates score display with response data,
@@ -129,21 +152,21 @@ function compute_score(frame){
     var url;
     var params;
 
-    console.log("computing score for frame: " + frame);
+    console.log("computing score for frame: " + frame.num);
 
     switch(type){
         case frame_type.STRIKE:
             url = "/calc_score_strike";
             params = {
-                roll1: frames[frame.num].roll1,
-                roll2: frames[frame.num].roll2,
+                roll1: frame.RNS_rolls[0],
+                roll2: frame.RNS_rolls[1],
                 current_total: current_total
             };
             break;
         case frame_type.SPARE:
             url = "/calc_score_spare";
             params = {
-                roll1: frames[frame.num].roll1,
+                roll1: frame.RNS_rolls[0],
                 current_total: current_total
             };
             break;
@@ -164,7 +187,10 @@ function compute_score(frame){
             current_total = data;
             set_frame_total(frame.num, data);
             frame.mark_as_scored();
-            reset_pins();
+            if (type == frame_type.OPEN){
+                reset_pins();
+            }
+            score_frames();
         }
     );
 
@@ -177,65 +203,45 @@ $(document).ready(function(){
     for (var i=1; i<=10; i++){
         frames.push(new Frame(i));
     }
-    current_frame = frames[0];
+    var fr = frames[0];
 
     /**
      * When input buttons are clicked, determine appropriate scoring
      * algorithm
      */
     $(".pin_button").click(function(){
+        console.log("");
+        console.log("");
         var num_pins = ($(this).text());
         // Update display
-        console.log("frame " + frame + ", roll " + roll + ": " + num_pins);
-        set_pins_for_roll(frame, roll, num_pins);
+        console.log("frame " + current_frame + ", roll " + roll + ": " + num_pins);
+        set_pins_for_roll(current_frame, roll, num_pins);
 
+        fr = frames[current_frame - 1];
 
-        // Determine frame type and compute if open
+        // Determine current_frame type and compute if open
         if (num_pins == 10){
-            console.log("frame " + frame + ": strike");
-            current_frame.set_type(frame_type.STRIKE, RNS.STRIKE);
+            console.log("frame " + current_frame + ": strike");
+            fr.set_type(frame_type.STRIKE, RNS.STRIKE);
             reset_pins();
 
-        } else if (num_pins == pins_remaining) {
-            console.log("frame " + frame + ": spare");
-            current_frame.set_type(frame_type.SPARE, RNS.SPARE);
+        } else if (num_pins == pins_remaining && roll == 2) {
+            console.log("frame " + current_frame + ": spare");
+            fr.set_type(frame_type.SPARE, RNS.SPARE);
             reset_pins();
 
         } else if (roll == 1){
-            console.log("frame " + frame + ": unplayed");
+            console.log("frame " + current_frame + ": unplayed");
             roll++;
             update_pins();
 
         } else {
-            console.log("frame " + frame + ": open");
-            current_frame.set_type(frame_type.OPEN, RNS.OPEN);
-            //console.log("computing open frame");
+            console.log("frame " + current_frame + ": open");
+            fr.set_type(frame_type.OPEN, RNS.OPEN);
+            //console.log("computing open current_frame");
         }
 
-        for (var i=0; i<frame; i++){
-            console.log("");
-            var fr = frames[i];
-            console.log("frame " + fr.num);
-            console.log("type " + fr.frame_type);
-            console.log("rns " + fr.RNS);
-            if (fr.RNS == 0){
-                switch(fr.frame_type){
-                    case frame_type.STRIKE:
-                        compute_score(fr);
-                        console.log("computing strike");
-                        break;
-                    case frame_type.SPARE:
-                        compute_score(fr);
-                        console.log("computing spare");
-                        break;
-                    case frame_type.OPEN:
-                        compute_score(fr);
-                        console.log("computing open");
-                        break;
-                }
-            }
-        }
-
+        score_frames();
 
 
     });
