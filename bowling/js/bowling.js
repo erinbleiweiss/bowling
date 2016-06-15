@@ -1,16 +1,52 @@
 var HOSTNAME = "http://127.0.0.1:5000";
 
-var current_frame = 1;
+var frame = 1;
 var roll = 1;
 var pins_remaining = 10;
 var current_total = 0;
+var frames = [];
+var current_frame;
 
-var score_type = {
+var frame_type = {
     OPEN: "open",
     STRIKE: "strike",
-    SPARE: "spare"
+    SPARE: "spare",
+    UNPLAYED: "unplayed"
 };
-var last_frame_type = score_type.OPEN;
+var RNS = {
+    OPEN: 0,
+    STRIKE: 2,
+    SPARE: 1,
+    UNPLAYED: -1
+};
+
+
+var Frame = function(num){
+    this.num = num;
+    this.roll1 = -1;
+    this.roll2= -1;
+    this.frame_type= frame_type.UNPLAYED;
+    this.RNS = RNS.UNPLAYED;
+};
+
+Frame.prototype.set_roll1 = function(n){
+    this.roll1 = n;
+};
+Frame.prototype.set_roll2 = function(n){
+    this.roll2 = n;
+};
+Frame.prototype.set_type = function(type, rns){
+    this.frame_type = type;
+    this.RNS = rns;
+};
+Frame.prototype.decrement_RNS = function(){
+    if (this.RNS > 0){
+        this.RNS--;
+    }
+};
+Frame.prototype.mark_as_scored = function(){
+    this.RNS = -1;
+};
 
 
 /**
@@ -34,20 +70,35 @@ function update_pins(){
 function reset_pins(){
     pins_remaining = 10;
     roll = 1;
-    current_frame++;
+    frame++;
     $.each($(".pin_button"), function(){
         $(this).removeClass("hidden");
     });
 }
 
+
 /**
- * Updates the display to reflect the number of pins knocked down
+ * Update frame array with pin count, and reduce RNS as needed
+ *
+ * Also updates the display to reflect the number of pins knocked down
  * for each roll
  * @param frame: Frame for current roll
  * @param roll:  Current roll number
  * @param val:   Number of pins knocked down
  */
 function set_pins_for_roll(frame, roll, val){
+    for (var i=1; i<=frame; i++){
+        var fr = frames[i-1];
+        if (i == frame && roll == 1){
+            fr.set_roll1(val);
+        } else if (i == frame && roll == 2) {
+            fr.set_roll2(val);
+        }
+
+        fr.decrement_RNS();
+    }
+
+
     if (val == 10) {
         $("#frame_" + frame + "_2").text("X");
     } else if (val == pins_remaining){
@@ -73,31 +124,34 @@ function set_frame_total(frame, val){
  * Upon completion, updates score display with response data,
  * then reset pin input buttons.
  */
-function compute_score(type, frame){
+function compute_score(frame){
+    var type = frame.frame_type;
     var url;
     var params;
 
+    console.log("computing score for frame: " + frame);
+
     switch(type){
-        case score_type.STRIKE:
+        case frame_type.STRIKE:
             url = "/calc_score_strike";
             params = {
-                roll1: $("#frame_" + (frame+1) + "_1").text(),
-                roll2: $("#frame_" + (frame+1) + "_2").text(),
+                roll1: frames[frame.num].roll1,
+                roll2: frames[frame.num].roll2,
                 current_total: current_total
             };
             break;
-        case score_type.SPARE:
+        case frame_type.SPARE:
             url = "/calc_score_spare";
             params = {
-                roll1: $("#frame_" + (frame+1) + "_1").text(),
+                roll1: frames[frame.num].roll1,
                 current_total: current_total
             };
             break;
-        case score_type.OPEN:
+        case frame_type.OPEN:
             url = "/calc_score";
             params = {
-                roll1: $("#frame_" + frame + "_1").text(),
-                roll2: $("#frame_" + frame + "_2").text(),
+                roll1: frame.roll1,
+                roll2: frame.roll2,
                 current_total: current_total
             };
             break;
@@ -108,7 +162,9 @@ function compute_score(type, frame){
         params,
         function(data){
             current_total = data;
-            set_frame_total(frame, data);
+            set_frame_total(frame.num, data);
+            frame.mark_as_scored();
+            reset_pins();
         }
     );
 
@@ -117,6 +173,12 @@ function compute_score(type, frame){
 
 
 $(document).ready(function(){
+    // Initialize array of frames (unplayed by default)
+    for (var i=1; i<=10; i++){
+        frames.push(new Frame(i));
+    }
+    current_frame = frames[0];
+
     /**
      * When input buttons are clicked, determine appropriate scoring
      * algorithm
@@ -124,43 +186,56 @@ $(document).ready(function(){
     $(".pin_button").click(function(){
         var num_pins = ($(this).text());
         // Update display
-        console.log("frame " + current_frame + ", roll " + roll + ": " + num_pins);
-        set_pins_for_roll(current_frame, roll, num_pins);
+        console.log("frame " + frame + ", roll " + roll + ": " + num_pins);
+        set_pins_for_roll(frame, roll, num_pins);
 
-        switch(last_frame_type){
-            case score_type.STRIKE:
-                if (roll == 2){
-                    // compute score for last frame, then compute this frame
-                    console.log("computing strike");
-                    compute_score(score_type.STRIKE, current_frame-1);
-                }
-                break;
-            case score_type.SPARE:
-                if (roll == 1) {
-                    console.log("computing spare");
-                    compute_score(score_type.SPARE, current_frame-1);
-                    // compute score for last frame, then compute this frame
-                }
-                break;
-        }
 
         // Determine frame type and compute if open
         if (num_pins == 10){
-            last_frame_type = score_type.STRIKE;
+            console.log("frame " + frame + ": strike");
+            current_frame.set_type(frame_type.STRIKE, RNS.STRIKE);
             reset_pins();
+
         } else if (num_pins == pins_remaining) {
-            last_frame_type = score_type.SPARE;
+            console.log("frame " + frame + ": spare");
+            current_frame.set_type(frame_type.SPARE, RNS.SPARE);
             reset_pins();
+
         } else if (roll == 1){
+            console.log("frame " + frame + ": unplayed");
             roll++;
             update_pins();
+
         } else {
-            last_frame_type = score_type.OPEN;
-            console.log("computing open frame");
-            compute_score(score_type.OPEN, current_frame);
-            reset_pins();
+            console.log("frame " + frame + ": open");
+            current_frame.set_type(frame_type.OPEN, RNS.OPEN);
+            //console.log("computing open frame");
         }
-        console.log(last_frame_type);
+
+        for (var i=0; i<frame; i++){
+            console.log("");
+            var fr = frames[i];
+            console.log("frame " + fr.num);
+            console.log("type " + fr.frame_type);
+            console.log("rns " + fr.RNS);
+            if (fr.RNS == 0){
+                switch(fr.frame_type){
+                    case frame_type.STRIKE:
+                        compute_score(fr);
+                        console.log("computing strike");
+                        break;
+                    case frame_type.SPARE:
+                        compute_score(fr);
+                        console.log("computing spare");
+                        break;
+                    case frame_type.OPEN:
+                        compute_score(fr);
+                        console.log("computing open");
+                        break;
+                }
+            }
+        }
+
 
 
     });
