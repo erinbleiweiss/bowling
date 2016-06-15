@@ -219,7 +219,7 @@ $(document).ready(function(){
 
         fr = frames[current_frame - 1];
 
-        // Determine current_frame type and compute if open
+        // Determine frame type and compute if open
         if (num_pins == 10){
             console.log("frame " + current_frame + ": strike");
             fr.set_type(frame_type.STRIKE, RNS.STRIKE);

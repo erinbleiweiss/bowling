@@ -20,16 +20,16 @@ def calc_score():
 @app.route("/calc_score_spare", methods=["GET"])
 def calc_score_spare():
     """
-    Calculates current_frame totals following a strike
+    Calculates frane totals following a strike
 
     Request parameters:
-    :param roll1:          Pins knocked down on first roll of next current_frame
+    :param roll1:          Pins knocked down on first roll of next frane
     :param current_total:  Cumulative total score before spare was rolled
 
     :return:               JSON object
                            {
-                              "prev": Total for previous (strike) current_frame
-                              "current": Total for current current_frame
+                              "prev": Total for previous (strike) frane
+                              "current": Total for current frane
                            }
     """
     roll1 = int(request.args.get('roll1'))
@@ -43,17 +43,17 @@ def calc_score_spare():
 @app.route("/calc_score_strike", methods=["GET"])
 def calc_score_strike():
     """
-    Calculates current_frame totals following a strike
+    Calculates frane totals following a strike
 
     Request parameters:
-    :param roll1:          Pins knocked down on first roll of next current_frame
-    :param roll2:          Pins knocked down on second roll of next current_frame
+    :param roll1:          Pins knocked down on first roll of next frane
+    :param roll2:          Pins knocked down on second roll of next frane
     :param current_total:  Cumulative total score before strike was rolled
 
     :return:               JSON object
                            {
-                              "prev": Total for previous (strike) current_frame
-                              "current": Total for current current_frame
+                              "prev": Total for previous (strike) frane
+                              "current": Total for current frane
                            }
     """
     roll1 = int(request.args.get('roll1'))
