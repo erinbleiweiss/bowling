@@ -25,17 +25,26 @@ var RNS = {
 var Frame = function(num){
     this.num = num;
     this.roll1 = -1;
-    this.roll2= -1;
+    this.roll2 = -1;
+    this.roll3 = -1;
     this.frame_type= frame_type.UNPLAYED;
     this.RNS = RNS.UNPLAYED;
     this.RNS_rolls = [];
 };
 
-Frame.prototype.set_roll1 = function(n){
-    this.roll1 = n;
-};
-Frame.prototype.set_roll2 = function(n){
-    this.roll2 = n;
+Frame.prototype.set_roll = function(roll, n){
+    switch(roll){
+        case 1:
+            this.roll1 = n;
+            break;
+        case 2:
+            this.roll2 = n;
+            break;
+        case 3:
+            this.roll3 = n;
+            break;
+    }
+
 };
 Frame.prototype.set_type = function(type, rns){
     this.frame_type = type;
@@ -75,13 +84,22 @@ function update_pins(){
  */
 function reset_pins(){
     pins_remaining = 10;
-    roll = 1;
-    current_frame++;
+    if (current_frame < 10){
+        roll = 1;
+        current_frame++;
+    } else {
+        roll++;
+    }
     $.each($(".pin_button"), function(){
         $(this).removeClass("hidden");
     });
 }
 
+
+
+function disable_inputs(){
+    $("#buttons").addClass("hidden");
+}
 
 /**
  * Update frame array with pin count, and reduce RNS as needed
@@ -95,10 +113,8 @@ function reset_pins(){
 function set_pins_for_roll(frame, roll, val){
     for (var i=1; i<=frame; i++){
         var fr = frames[i-1];
-        if (i == frame && roll == 1){
-            fr.set_roll1(val);
-        } else if (i == frame && roll == 2) {
-            fr.set_roll2(val);
+        if (i == frame){
+            fr.set_roll(roll, val);
         }
 
         if (fr.decrement_RNS()){
@@ -106,11 +122,18 @@ function set_pins_for_roll(frame, roll, val){
         }
     }
 
-
     if (val == 10) {
-        $("#frame_" + frame + "_2").text("X");
+        if (frame < 10){
+            $("#frame_" + frame + "_2").text("X");
+        } else {
+            $("#frame_" + frame + "_" + roll).text("X");
+        }
     } else if (val == pins_remaining){
-        $("#frame_" + frame + "_2").text("/");
+        if (frame < 10){
+            $("#frame_" + frame + "_2").text("/");
+        } else {
+            $("#frame_" + frame + "_" + roll).text("/");
+        }
     } else{
         $("#frame_" + frame + "_" + roll).text(val);
         pins_remaining -= val;
@@ -129,14 +152,9 @@ function set_frame_total(frame, val){
 
 function score_frames(){
     for (var i=last_scored; i<current_frame; i++){
-        console.log("");
         var fr = frames[i];
-        console.log("frame " + fr.num);
-        console.log("type " + fr.frame_type);
-        console.log("rns " + fr.RNS);
         if (fr.RNS == 0){
             compute_score(fr);
-            console.log("computing " + fr.frame_type);
             break;
         }
     }
@@ -151,8 +169,6 @@ function compute_score(frame){
     var type = frame.frame_type;
     var url;
     var params;
-
-    console.log("computing score for frame: " + frame.num);
 
     switch(type){
         case frame_type.STRIKE:
@@ -190,7 +206,11 @@ function compute_score(frame){
             if (type == frame_type.OPEN){
                 reset_pins();
             }
-            score_frames();
+            if (frame.num == 10){
+                disable_inputs();
+            } else {
+                score_frames();
+            }
         }
     );
 
@@ -210,40 +230,42 @@ $(document).ready(function(){
      * algorithm
      */
     $(".pin_button").click(function(){
-        console.log("");
-        console.log("");
         var num_pins = ($(this).text());
+
         // Update display
-        console.log("frame " + current_frame + ", roll " + roll + ": " + num_pins);
         set_pins_for_roll(current_frame, roll, num_pins);
 
         fr = frames[current_frame - 1];
 
         // Determine frame type and compute if open
         if (num_pins == 10){
-            console.log("frame " + current_frame + ": strike");
-            fr.set_type(frame_type.STRIKE, RNS.STRIKE);
+            if (current_frame < 10){
+                fr.set_type(frame_type.STRIKE, RNS.STRIKE);
+            } else if (roll != 3) {
+                fr.set_type(frame_type.STRIKE, 3 - roll);
+            }
             reset_pins();
-
         } else if (num_pins == pins_remaining && roll == 2) {
-            console.log("frame " + current_frame + ": spare");
             fr.set_type(frame_type.SPARE, RNS.SPARE);
             reset_pins();
-
-        } else if (roll == 1){
-            console.log("frame " + current_frame + ": unplayed");
+        } else if (
+                    roll == 1 ||
+                    (
+                      current_frame == 10 &&
+                      roll == 2 &&
+                      fr.frame_type != frame_type.UNPLAYED
+                    )
+                   ){
             roll++;
             update_pins();
 
         } else {
-            console.log("frame " + current_frame + ": open");
-            fr.set_type(frame_type.OPEN, RNS.OPEN);
-            //console.log("computing open current_frame");
+            if (current_frame < 10 || fr.frame_type == frame_type.UNPLAYED){
+                fr.set_type(frame_type.OPEN, RNS.OPEN);
+            }
         }
 
         score_frames();
-
-
     });
 
 });
