@@ -17,7 +17,7 @@ h1{
 }
 
 #instructions{
-    padding: 0 14px;
+    padding: 0 6px;
 }
 
 button{
@@ -66,6 +66,7 @@ button img{
 #reset_large{
     font-size: 25px;
     padding: 20px;
+    margin-top: 7px;
 }
 
 .pin_button {
