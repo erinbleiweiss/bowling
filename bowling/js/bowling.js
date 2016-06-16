@@ -230,7 +230,9 @@ function set_pins_for_roll(frame, roll, val){
         }
     } else{
         $("#frame_" + frame + "_" + roll).text(val);
-        pins_remaining -= val;
+        if (roll == 1){
+            pins_remaining -= val;
+        }
     }
 }
 

@@ -1,8 +1,22 @@
 body{
-    padding-top: 100px;
+    padding-top: 50px;
+    font-size: 18px;
+    font-family: 'Lato', sans-serif;
 }
+
+h1{
+    text-align: center;
+    padding-bottom: 50px;
+}
+
 #top{
+    width: 1000px;
     height: 100px;
+    margin: 0 auto;
+}
+
+#instructions{
+    padding: 0 20px;
 }
 
 #buttons,
@@ -22,8 +36,12 @@ body{
     top: 13px;
 }
 
-.pin_button,
-#reset_large {
+#reset_large{
+    font-size: 25px;
+    padding: 20px;
+}
+
+.pin_button {
     font-size: 25px;
     padding: 20px 0;
     margin: 7px;
@@ -31,25 +49,30 @@ body{
 
 table{
     margin: 50px auto;
-    border: 1px solid black;
+    border: 3px solid #1BBEEC;
     border-collapse: collapse;
 }
 
 td{
     min-width: 25px;
-    height: 25px;
+    height: 35px;
     padding: 10px;
     text-align: center;
 }
 
+th{
+    background-color: #1BBEEC;
+    color: #ffffff;
+}
+
 th,
 .td_right {
-    border: 1px solid black;
+    border: 3px solid #1BBEEC;
 }
 
 .cumulative_score td{
-    border-left: 1px solid black;
-    border-right: 1px solid black;
+    border-left: 3px solid #1BBEEC;
+    border-right: 3px solid #1BBEEC;
 }
 
 .hidden{
