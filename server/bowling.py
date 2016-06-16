@@ -4,16 +4,21 @@ from flask.ext.cors import CORS #pip install flask-cors
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/")
-def hello():
-    return "Hello world!"
-
-
 @app.route("/calc_score", methods=["GET"])
 def calc_score():
+    """
+    Calculates frane totals following an open frame
+
+    Request parameters:
+    :param roll1:          Pins knocked down on first roll of current frane
+    :param roll2:          Pins knocked down on second roll of current frane
+
+    :return:               New cumulative total (str)
+    """
     roll1 = int(request.args.get('roll1'))
     roll2 = int(request.args.get('roll2'))
     current_total = int(request.args.get('current_total'))
+
     return str(current_total + roll1 + roll2)
 
 
@@ -26,17 +31,12 @@ def calc_score_spare():
     :param roll1:          Pins knocked down on first roll of next frane
     :param current_total:  Cumulative total score before spare was rolled
 
-    :return:               JSON object
-                           {
-                              "prev": Total for previous (strike) frane
-                              "current": Total for current frane
-                           }
+    :return:               New cumulative total (str)
     """
     roll1 = int(request.args.get('roll1'))
     current_total = int(request.args.get('current_total'))
 
     spare_frame_total = roll1 + 10
-
     return str(current_total + spare_frame_total)
 
 
@@ -50,11 +50,7 @@ def calc_score_strike():
     :param roll2:          Pins knocked down on second roll of next frane
     :param current_total:  Cumulative total score before strike was rolled
 
-    :return:               JSON object
-                           {
-                              "prev": Total for previous (strike) frane
-                              "current": Total for current frane
-                           }
+    :return:               New cumulative total (str)
     """
     roll1 = int(request.args.get('roll1'))
     roll2 = int(request.args.get('roll2'))
@@ -62,7 +58,6 @@ def calc_score_strike():
 
     frame_score = roll1 + roll2
     strike_frame_total = current_total + frame_score + 10
-
     return str(strike_frame_total)
 
 
