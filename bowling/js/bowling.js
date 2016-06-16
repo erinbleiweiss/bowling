@@ -1,19 +1,34 @@
 var HOSTNAME = "http://127.0.0.1:5000";
 
-var current_frame = 1;
-var roll = 1;
-var pins_remaining = 10;
-var current_total = 0;
-var frames = [];
+var frames = [];            // Array to hold 10 frame objects
+var current_frame = 1;      // # of current frame (1-10)
+var roll = 1;               // # of current roll (1-2; may be 3 for frame 10)
+var pins_remaining = 10;    // # of pins remaining for a single frame (0-10)
+var last_scored = 0;        // Last frame # scored (1-10). 0 Indicates that no frames have been scored.
+var current_total = 0;      // Current total score of game (0-300)
 
-var last_scored = 0;
-
+/**
+ *  Convenience enum used to denote type of frame, for use in
+ *  frame scoring.
+ *
+ *  A frame may be a strike, a spare, open, or unplayed (incomplete).
+ */
 var frame_type = {
     OPEN: "open",
     STRIKE: "strike",
     SPARE: "spare",
     UNPLAYED: "unplayed"
 };
+
+/**
+ * Rolls Needed to Score (RNS) is determined by a frame's type.
+ * This is a convenience enum for enhanced readability.
+ *
+ * Open frames may be scored immediately (RNS = 0).
+ * Spares require one additional roll before scoring (RNS = 1)
+ * Strikes require two additional rolls (RNS = 2)
+ * Unplayed, incomplete, or already scored frames are denoted as RNS = -1.
+ */
 var RNS = {
     OPEN: 0,
     STRIKE: 2,
@@ -21,7 +36,20 @@ var RNS = {
     UNPLAYED: -1
 };
 
-
+/**
+ * A complete bowling game contains 10 unique frame objects.
+ *
+ * Each frame contains two rolls, except frame ten which may
+ * contain up to three.
+ *
+ * @param num: {int}              The frame number from 1-10
+ * @param roll1: {int}            # of pins knocked down on roll 1
+ * @param roll2: {int}            # of pins knocked down on roll 2
+ * @param roll3: {int}            # of pins knocked down on roll 3
+ * @param frame_type: {string}    Determines scoring type ("open", "strike", "spare", or "unplayed")
+ * @param RNS: {int}              "Rolls Needed to Score"
+ * @param RNS_rolls: {int array}  Subsequent roll value(s) used to score strikes and spares
+ */
 var Frame = function(num){
     this.num = num;
     this.roll1 = -1;
@@ -32,6 +60,12 @@ var Frame = function(num){
     this.RNS_rolls = [];
 };
 
+/**
+ * Setter for Frame's roll params
+ *
+ * @param roll:  Roll #
+ * @param n:     Value of roll (# of pins knocked down)
+ */
 Frame.prototype.set_roll = function(roll, n){
     switch(roll){
         case 1:
@@ -46,22 +80,48 @@ Frame.prototype.set_roll = function(roll, n){
     }
 
 };
+
+/***
+ * Set type and RNS for Frame ("open", "strike", "spare", or "unplayed")
+ * @param type:   Frame type (string)
+ * @param rns:    Rolls needed to score (Initialized based on type)
+ */
 Frame.prototype.set_type = function(type, rns){
     this.frame_type = type;
     this.RNS = rns;
 };
+
+/**
+ * Called after each roll: Decrement RNS for frame if necessary
+ *
+ * @returns {boolean} Returns true if RNS was decremented
+ */
 Frame.prototype.decrement_RNS = function(){
     if (this.RNS > 0){
         this.RNS--;
         return true;
     } return false;
 };
+
+/**
+ * Add a roll value to a frame's RNS array
+ * @param roll: roll value (# of pins knocked down)
+ */
 Frame.prototype.add_roll = function(roll){
     this.RNS_rolls.push(roll);
 };
+
+
+/**
+ * Called in compute_score():
+ *
+ * Mark a frame as scored (Do not score again). Also update global last_scored.
+ */
 Frame.prototype.mark_as_scored = function(){
     this.RNS = -1;
+    last_scored = this.num;
 };
+
 
 
 /**
@@ -96,10 +156,14 @@ function reset_pins(){
 }
 
 
-
+/**
+ * Called upon game completion:
+ * Removes pin inputs from view.
+ */
 function disable_inputs(){
     $("#buttons").addClass("hidden");
 }
+
 
 /**
  * Update frame array with pin count, and reduce RNS as needed
@@ -111,6 +175,7 @@ function disable_inputs(){
  * @param val:   Number of pins knocked down
  */
 function set_pins_for_roll(frame, roll, val){
+    // Set roll values for frame object
     for (var i=1; i<=frame; i++){
         var fr = frames[i-1];
         if (i == frame){
@@ -122,6 +187,7 @@ function set_pins_for_roll(frame, roll, val){
         }
     }
 
+    // Set roll values for display
     if (val == 10) {
         if (frame < 10){
             $("#frame_" + frame + "_2").text("X");
@@ -149,7 +215,15 @@ function set_frame_total(frame, val){
     $("#frame_" + frame + "_total").text(val);
 }
 
-
+/**
+ * Scan all frames between last scored and current frame.  If frame is
+ * eligible for scoring (no subsequent rolls required), compute score
+ * for that frame using bowling API.
+ *
+ * Break out of loop after scoring first frame in order to avoid totals
+ * being returned from API out of order.  The compute_score function will
+ * call score_frames again upon completion.
+ */
 function score_frames(){
     for (var i=last_scored; i<current_frame; i++){
         var fr = frames[i];
@@ -162,8 +236,11 @@ function score_frames(){
 
 /**
  * Retrieves score for an open frame from the bowling API.
+ *
  * Upon completion, updates score display with response data,
  * then reset pin input buttons.
+ *
+ * If frame 10, disable pin inputs on completion.
  */
 function compute_score(frame){
     var type = frame.frame_type;
@@ -203,9 +280,11 @@ function compute_score(frame){
             current_total = data;
             set_frame_total(frame.num, data);
             frame.mark_as_scored();
+
             if (type == frame_type.OPEN){
                 reset_pins();
             }
+
             if (frame.num == 10){
                 disable_inputs();
             } else {
@@ -217,7 +296,10 @@ function compute_score(frame){
 }
 
 
-
+/**
+ * On page load, initialize frame array and define behavior for
+ * clicking pin input buttons.
+ */
 $(document).ready(function(){
     // Initialize array of frames (unplayed by default)
     for (var i=1; i<=10; i++){
@@ -232,12 +314,11 @@ $(document).ready(function(){
     $(".pin_button").click(function(){
         var num_pins = ($(this).text());
 
-        // Update display
-        set_pins_for_roll(current_frame, roll, num_pins);
+        set_pins_for_roll(current_frame, roll, num_pins); // Update display
+        fr = frames[current_frame - 1];                   // Get current frame
 
-        fr = frames[current_frame - 1];
-
-        // Determine frame type and compute if open
+        // Determine frame type:
+        // Strike
         if (num_pins == 10){
             if (current_frame < 10){
                 fr.set_type(frame_type.STRIKE, RNS.STRIKE);
@@ -245,23 +326,30 @@ $(document).ready(function(){
                 fr.set_type(frame_type.STRIKE, 3 - roll);
             }
             reset_pins();
-        } else if (num_pins == pins_remaining && roll == 2) {
+        }
+        // Spare
+        else if (num_pins == pins_remaining && roll == 2) {
             fr.set_type(frame_type.SPARE, RNS.SPARE);
             reset_pins();
-        } else if (
-                    roll == 1 ||
+        }
+        // Incomplete frame
+        else if (
+                    roll == 1 ||                    // First roll of frames 1-9
                     (
-                      current_frame == 10 &&
-                      roll == 2 &&
+                      current_frame == 10 &&        // First or second roll of frame 10
+                      roll <= 2 &&                  // if frame contains strike or spare
                       fr.frame_type != frame_type.UNPLAYED
                     )
                    ){
             roll++;
             update_pins();
 
-        } else {
+        }
+        // Open Frame
+        else {
             if (current_frame < 10 || fr.frame_type == frame_type.UNPLAYED){
                 fr.set_type(frame_type.OPEN, RNS.OPEN);
+                reset_pins();
             }
         }
 
