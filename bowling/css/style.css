@@ -16,12 +16,25 @@ h1{
 }
 
 #instructions{
-    padding: 0 20px;
+    padding: 0 14px;
 }
 
-#buttons,
-#reset{
-    text-align: center;
+button{
+    background-color: #3D4144;
+    color: #ffffff;
+    border: 0;
+}
+
+button img{
+    width: 60px;
+    height: 60px;
+}
+
+#buttons{
+    padding-top: 20px;
+    text-align: left;
+    position: relative;
+    left: -2px;
 }
 
 .pin_button {
@@ -32,8 +45,8 @@ h1{
     width: 65px;
     height: 69px;
     margin: 7px;
-    position: relative;
-    top: 13px;
+    padding: 3px 0 0 3px;
+    float: right;
 }
 
 #reset_large{
