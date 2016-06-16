@@ -42,6 +42,11 @@ button img{
     width: 65px;
 }
 
+#reset{
+    padding-top: 20px;
+    text-align: center;
+}
+
 #reset_small{
     width: 65px;
     height: 69px;
