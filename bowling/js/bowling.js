@@ -1,4 +1,4 @@
-var HOSTNAME = "http://127.0.0.1:5000";
+var HOSTNAME = "http://108.84.181.177:5001";
 
 var frames = [];            // Array to hold 10 frame objects
 var current_frame = 1;      // # of current frame (1-10)
