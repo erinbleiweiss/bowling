@@ -381,11 +381,17 @@ $(document).ready(function(){
         score_frames();
     });
 
-    // Attach behavior to reset button
-    $("#reset_button").click(function(){
+    // Attach behavior to reset buttons
+    $("#reset_large").click(function(){
         setup_frames();
         $("#buttons").removeClass("hidden");
         $("#reset").addClass("hidden");
+    });
+
+    $("#reset_small").click(function(){
+        if (confirm("Reset all frames?") == true) {
+            setup_frames();
+        }
     });
 
 
