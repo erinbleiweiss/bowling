@@ -123,6 +123,33 @@ Frame.prototype.mark_as_scored = function(){
 };
 
 
+/**
+ * On page load and on reset:
+ *   - Clear any existing data,
+ *   - Reset global variables to default values,
+ *   - Initialize new array of frames (unplayed by default),
+ *   - Clear existing values in display frames,
+ *   - Return all pin input buttons to view
+ */
+function setup_frames(){
+    frames = [];
+    current_frame = 1;
+    roll = 1;
+    pins_remaining = 10;
+    last_scored = 0;
+    current_total = 0;
+
+    for (var i=1; i<=10; i++){
+        frames.push(new Frame(i));
+    }
+    $.each($("td"), function(){
+        $(this).text("");
+    });
+    $.each($(".pin_button"), function(){
+        $(this).removeClass("hidden");
+    });
+}
+
 
 /**
  * Reduces possible number of pins to knock down by removing the
@@ -162,6 +189,7 @@ function reset_pins(){
  */
 function disable_inputs(){
     $("#buttons").addClass("hidden");
+    $("#reset").removeClass("hidden");
 }
 
 
@@ -301,10 +329,8 @@ function compute_score(frame){
  * clicking pin input buttons.
  */
 $(document).ready(function(){
-    // Initialize array of frames (unplayed by default)
-    for (var i=1; i<=10; i++){
-        frames.push(new Frame(i));
-    }
+    // Setup frame array and get first frame
+    setup_frames();
     var fr = frames[0];
 
     /**
@@ -349,12 +375,19 @@ $(document).ready(function(){
         else {
             if (current_frame < 10 || fr.frame_type == frame_type.UNPLAYED){
                 fr.set_type(frame_type.OPEN, RNS.OPEN);
-                reset_pins();
             }
         }
 
         score_frames();
     });
+
+    // Attach behavior to reset button
+    $("#reset_button").click(function(){
+        setup_frames();
+        $("#buttons").removeClass("hidden");
+        $("#reset").addClass("hidden");
+    });
+
 
 });
 

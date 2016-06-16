@@ -1,8 +1,12 @@
 body{
     padding-top: 100px;
 }
+#top{
+    height: 100px;
+}
 
-#buttons{
+#buttons,
+#reset{
     text-align: center;
 }
 
