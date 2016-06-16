@@ -25,7 +25,7 @@ def calc_score():
 @app.route("/calc_score_spare", methods=["GET"])
 def calc_score_spare():
     """
-    Calculates frane totals following a strike
+    Calculates frane totals following a spare
 
     Request parameters:
     :param roll1:          Pins knocked down on first roll of next frane
