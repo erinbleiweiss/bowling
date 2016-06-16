@@ -132,6 +132,7 @@ Frame.prototype.mark_as_scored = function(){
  *   - Return all pin input buttons to view
  */
 function setup_frames(){
+    reset_pins();
     frames = [];
     current_frame = 1;
     roll = 1;
@@ -145,9 +146,6 @@ function setup_frames(){
     $.each($("td"), function(){
         $(this).text("");
     });
-    $.each($(".pin_button"), function(){
-        $(this).removeClass("hidden");
-    });
 }
 
 
@@ -159,6 +157,11 @@ function setup_frames(){
 function update_pins(){
     $.each($(".pin_button"), function(){
         var pin = ($(this).attr("data-num"));
+        if (pin == pins_remaining){
+            if (roll == 2) {
+                $(this).text("/");
+            }
+        }
         if (pin > pins_remaining) {
             $(this).addClass("hidden");
         }
@@ -179,6 +182,12 @@ function reset_pins(){
     }
     $.each($(".pin_button"), function(){
         $(this).removeClass("hidden");
+        var val = $(this).attr("data-num");
+        if (val != 10){
+            $(this).text(val);
+        } else{
+            $(this).text("X");
+        }
     });
 }
 
@@ -266,10 +275,7 @@ function score_frames(){
 
 /**
  * Retrieves score for an open frame from the bowling API.
- *
- * Upon completion, updates score display with response data,
- * then reset pin input buttons.
- *
+ * Upon completion, updates score display with response data.
  * If frame 10, disable pin inputs on completion.
  */
 function compute_score(frame){
@@ -311,10 +317,6 @@ function compute_score(frame){
             set_frame_total(frame.num, data);
             frame.mark_as_scored();
 
-            if (type == frame_type.OPEN){
-                reset_pins();
-            }
-
             if (frame.num == 10){
                 disable_inputs();
             } else {
@@ -340,7 +342,7 @@ $(document).ready(function(){
      * algorithm
      */
     $(".pin_button").click(function(){
-        var num_pins = ($(this).text());
+        var num_pins = ($(this).attr("data-num"));
 
         set_pins_for_roll(current_frame, roll, num_pins); // Update display
         fr = frames[current_frame - 1];                   // Get current frame
@@ -381,6 +383,11 @@ $(document).ready(function(){
         }
 
         score_frames();
+
+        if (fr.frame_type == frame_type.OPEN){
+            reset_pins();
+        }
+
     });
 
     // Attach behavior to reset buttons

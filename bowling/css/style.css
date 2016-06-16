@@ -24,6 +24,14 @@ button{
     background-color: #3D4144;
     color: #ffffff;
     border: 0;
+    border-radius: 4px;
+}
+
+button:hover{
+    background-color: #505456;
+}
+button:active{
+    background-color: #636669;
 }
 
 button img{
