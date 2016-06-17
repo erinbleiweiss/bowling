@@ -327,6 +327,59 @@ function compute_score(frame){
 
 }
 
+/**
+ * Determine the type of the current frame (open/strike/spare/unplayed (incomplete))
+ * based on the number of pins knocked down. Set the frame type property in order
+ * to use the appropriate scoring algorithm.
+ *
+ * Update displays and inputs as needed.
+ *
+ * @param num_pins: Number of pins knocked down as indicated by input buttons. (0-10)
+ */
+function play_roll(num_pins) {
+    set_pins_for_roll(current_frame, roll, num_pins); // Update display
+    var fr = frames[current_frame - 1];                   // Get current frame
+
+    // Determine frame type:
+    // Strike
+    if (num_pins == 10) {
+        if (current_frame < 10) {
+            fr.set_type(frame_type.STRIKE, RNS.STRIKE);
+        } else if (roll != 3) {
+            fr.set_type(frame_type.STRIKE, 3 - roll);
+        }
+        reset_pins();
+    }
+    // Spare
+    else if (num_pins == pins_remaining && roll == 2) {
+        fr.set_type(frame_type.SPARE, RNS.SPARE);
+        reset_pins();
+    }
+    // Incomplete frame
+    else if (
+        roll == 1 ||                    // First roll of frames 1-9
+        (
+            current_frame == 10 &&        // First or second roll of frame 10
+            roll <= 2 &&                  // if frame contains strike or spare
+            fr.frame_type != frame_type.UNPLAYED
+        )
+    ) {
+        roll++;
+        update_pins();
+
+    }
+    // Open Frame
+    else {
+        if (current_frame < 10 || fr.frame_type == frame_type.UNPLAYED) {
+            fr.set_type(frame_type.OPEN, RNS.OPEN);
+        }
+    }
+
+    if (fr.frame_type == frame_type.OPEN) {
+        reset_pins();
+    }
+}
+
 
 /**
  * On page load, initialize frame array and define behavior for
@@ -335,59 +388,15 @@ function compute_score(frame){
 $(document).ready(function(){
     // Setup frame array and get first frame
     setup_frames();
-    var fr = frames[0];
 
     /**
      * When input buttons are clicked, determine appropriate scoring
-     * algorithm
+     * algorithm and score frames.
      */
     $(".pin_button").click(function(){
         var num_pins = ($(this).attr("data-num"));
-
-        set_pins_for_roll(current_frame, roll, num_pins); // Update display
-        fr = frames[current_frame - 1];                   // Get current frame
-
-        // Determine frame type:
-        // Strike
-        if (num_pins == 10){
-            if (current_frame < 10){
-                fr.set_type(frame_type.STRIKE, RNS.STRIKE);
-            } else if (roll != 3) {
-                fr.set_type(frame_type.STRIKE, 3 - roll);
-            }
-            reset_pins();
-        }
-        // Spare
-        else if (num_pins == pins_remaining && roll == 2) {
-            fr.set_type(frame_type.SPARE, RNS.SPARE);
-            reset_pins();
-        }
-        // Incomplete frame
-        else if (
-                    roll == 1 ||                    // First roll of frames 1-9
-                    (
-                      current_frame == 10 &&        // First or second roll of frame 10
-                      roll <= 2 &&                  // if frame contains strike or spare
-                      fr.frame_type != frame_type.UNPLAYED
-                    )
-                   ){
-            roll++;
-            update_pins();
-
-        }
-        // Open Frame
-        else {
-            if (current_frame < 10 || fr.frame_type == frame_type.UNPLAYED){
-                fr.set_type(frame_type.OPEN, RNS.OPEN);
-            }
-        }
-
+        play_roll(num_pins);
         score_frames();
-
-        if (fr.frame_type == frame_type.OPEN){
-            reset_pins();
-        }
-
     });
 
     // Attach behavior to reset buttons
