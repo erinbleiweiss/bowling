@@ -6,6 +6,6 @@ The bowling display, inputs, and core data models are written in Javascript/jQue
 
 The backend application is a Flask API written in Python running on a CentOS server.
 
-**Unit Tests**
-JS tests are run with QUnit at http://erinbleiweiss.com/bowling/tests.html
+**Unit Tests**  
+JS tests are run with QUnit at http://erinbleiweiss.com/bowling/tests.html  
 Python tests are run with PyTest `py.test tests.py`
